@@ -1,61 +1,139 @@
 return {
-	"nvim-treesitter/nvim-treesitter",
-	event = { "BufReadPre", "BufNewFile" },
-	build = ":TSUpdate",
-	dependencies = {
-		"windwp/nvim-ts-autotag",
-	},
-	config = function()
-		-- import nvim-treesitter plugin
-		local treesitter = require("nvim-treesitter.configs")
+	{
+		"nvim-treesitter/nvim-treesitter",
+		event = "BufReadPre",
+		build = ":TSUpdate",
+		config = function()
+			local status_ok, configs = pcall(require, "nvim-treesitter.configs")
+			if not status_ok then
+				return
+			end
 
-		-- configure treesitter
-		treesitter.setup({ -- enable syntax highlighting
-			highlight = {
-				enable = true,
-			},
-			endwise = {
-				enable = true,
-			},
-			-- enable indentation
-			indent = { enable = true },
-			-- enable autotagging (w/ nvim-ts-autotag plugin)
-			autotag = {
-				enable = true,
-			},
-			-- ensure these language parsers are installed
-			ensure_installed = {
-				"json",
-				"javascript",
-				"typescript",
-				"tsx",
-				"yaml",
+			local context_ok, context = pcall(require, "treesitter-context")
+			if context_ok then
+				context.setup()
+			end
+
+			local languages = {
+				"bash",
+				"comment",
+				"dockerfile",
 				"html",
-				"css",
-				"prisma",
+				"javascript",
+				"json",
+				"lua",
 				"markdown",
 				"markdown_inline",
-				"svelte",
-				"graphql",
-				"bash",
-				"lua",
+				"regex",
 				"ruby",
+				"scss",
+				"toml",
+				"yaml",
 				"vim",
-				"dockerfile",
-				"gitignore",
-				"query",
-				"vimdoc",
-				"c",
-			},
-			incremental_selection = {
-				enable = true,
-				keymaps = {
-					init_selection = "<C-space>",
-					node_incremental = "<C-space>",
-					scope_incremental = false,
-					node_decremental = "<bs>",
+			}
+
+			configs.setup({
+				incremental_selection = {
+					enable = true,
+					keymaps = {
+						node_incremental = "v",
+						node_decremental = "V",
+					},
 				},
-			},
-		})
-	end,
+				endwise = {
+					enable = true,
+				},
+				context_commentstring = {
+					enable = true,
+					enable_autocmd = false,
+				},
+				ensure_installed = languages,
+				indent = {
+					enable = false,
+				},
+				highlight = {
+					enable = true,
+					additional_vim_regex_highlighting = true,
+				},
+				sync_install = true,
+				textobjects = {
+					swap = {
+						enable = true,
+						swap_next = {
+							["<leader>a"] = "@parameter.inner",
+						},
+						swap_previous = {
+							["<leader>A"] = "@parameter.inner",
+						},
+					},
+					select = {
+						enable = true,
+						lookahead = true, -- Automatically jump forward to textobj, similar to targets.vim
+						keymaps = {
+							["af"] = "@function.outer",
+							["if"] = "@function.inner",
+							["ac"] = "@class.outer",
+							["ic"] = "@class.inner",
+							["ab"] = "@block.outer",
+							["ib"] = "@block.inner",
+						},
+					},
+					move = {
+						enable = true,
+						set_jumps = true, -- whether to set jumps in the jumplist
+						goto_next_start = {
+							["]m"] = "@function.outer",
+							["]]"] = "@class.outer",
+
+							-- Below example nvim-treesitter"s `locals.scm` and `folds.scm`. They also provide highlights.scm and indent.scm.
+							["]s"] = { query = "@scope", query_group = "locals", desc = "Next scope" },
+							["]z"] = { query = "@fold", query_group = "folds", desc = "Next fold" },
+						},
+						goto_next_end = {
+							["]M"] = "@function.outer",
+							["]["] = "@class.outer",
+						},
+						goto_previous_start = {
+							["[m"] = "@function.outer",
+							["[["] = "@class.outer",
+						},
+						goto_previous_end = {
+							["[M"] = "@function.outer",
+							["[]"] = "@class.outer",
+						},
+						-- Below will go to either the start or the end, whichever is closer.
+						-- Use if you want more granular movements
+						-- Make it even more gradual by adding multiple queries and regex.
+						goto_next = {
+							["]d"] = "@conditional.outer",
+						},
+						goto_previous = {
+							["[d"] = "@conditional.outer",
+						},
+					},
+				},
+			})
+		end,
+	},
+
+	{
+		"RRethy/nvim-treesitter-endwise",
+		event = "InsertEnter",
+	},
+
+	{
+		"m-demare/hlargs.nvim",
+		event = "BufReadPre",
+		config = function()
+			require("hlargs").setup()
+		end,
+		dependencies = "nvim-treesitter/nvim-treesitter",
+	},
+
+	-- https://github.com/chrisgrieser/nvim-various-textobjs#list-of-text-objects
+	{
+		"nvim-treesitter/nvim-treesitter-textobjects",
+		event = "BufReadPre",
+		dependencies = "nvim-treesitter/nvim-treesitter",
+	},
 }
